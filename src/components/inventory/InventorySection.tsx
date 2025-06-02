@@ -9,22 +9,25 @@ import { Button } from '@/components/ui/button';
 import { PackageSearch, FileText, PackagePlus } from 'lucide-react';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
+import { AddItemForm } from './AddItemForm'; // Importar el nuevo componente
 
 interface InventorySectionProps {
-  initialItems: InventoryItem[];
+  items: InventoryItem[];
+  onItemsChange: (newItems: InventoryItem[]) => void;
 }
 
-export function InventorySection({ initialItems }: InventorySectionProps) {
+export function InventorySection({ items, onItemsChange }: InventorySectionProps) {
   const [searchTerm, setSearchTerm] = useState('');
+  const [isAddItemDialogOpen, setIsAddItemDialogOpen] = useState(false);
 
   const filteredItems = useMemo(() => {
-    if (!searchTerm) return initialItems;
-    return initialItems.filter(
+    if (!searchTerm) return items;
+    return items.filter(
       (item) =>
         item.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
         item.category.toLowerCase().includes(searchTerm.toLowerCase())
     );
-  }, [initialItems, searchTerm]);
+  }, [items, searchTerm]);
 
   const handleGeneratePdf = () => {
     const doc = new jsPDF();
@@ -56,51 +59,69 @@ export function InventorySection({ initialItems }: InventorySectionProps) {
       body: tableRows,
       startY: 35,
       theme: 'grid',
-      headStyles: { fillColor: [240, 72, 72] }, // Primary color (Tomato Red)
+      headStyles: { fillColor: [240, 72, 72] }, 
       styles: { font: "helvetica", fontSize: 8 },
       didDrawPage: (data) => {
         doc.setFontSize(8);
-        doc.text(`Página ${data.pageNumber} de ${data.pageCount}`, data.settings.margin.left, doc.internal.pageSize.height - 10);
+        const pageCount = data.doc.getNumberOfPages(); // Correct way to get page count
+        doc.text(`Página ${data.pageNumber} de ${pageCount}`, data.settings.margin.left, doc.internal.pageSize.height - 10);
       }
     });
 
     doc.save('reporte_inventario.pdf');
   };
 
+  const handleAddItem = (newItemData: Omit<InventoryItem, 'id' | 'lastUpdated'>) => {
+    const newItem: InventoryItem = {
+      ...newItemData,
+      id: `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`, // Generar ID único
+      lastUpdated: new Date().toISOString(),
+    };
+    onItemsChange([...items, newItem]);
+    setIsAddItemDialogOpen(false); // Cerrar el diálogo después de agregar
+  };
+
   return (
-    <Card className="shadow-lg">
-      <CardHeader>
-        <div className="flex items-center justify-between">
-          <div className="flex items-center">
-            <PackageSearch className="h-6 w-6 mr-2 text-primary" />
-            <CardTitle className="font-headline text-2xl">Inventario Actual</CardTitle>
+    <>
+      <Card className="shadow-lg">
+        <CardHeader>
+          <div className="flex items-center justify-between">
+            <div className="flex items-center">
+              <PackageSearch className="h-6 w-6 mr-2 text-primary" />
+              <CardTitle className="font-headline text-2xl">Inventario Actual</CardTitle>
+            </div>
           </div>
-        </div>
-        <CardDescription>Busca, gestiona y añade artículos a tu inventario.</CardDescription>
-      </CardHeader>
-      <CardContent className="space-y-4">
-        <div className="flex flex-col md:flex-row justify-between items-center gap-4">
-          <InventorySearch onSearch={setSearchTerm} className="w-full md:flex-grow" />
-          <div className="flex flex-col sm:flex-row gap-2 w-full md:w-auto">
-            <Button
-              // onClick={() => { /* Lógica para agregar artículo aquí */ }}
-              className="w-full md:w-auto whitespace-nowrap"
-            >
-              <PackagePlus className="mr-2 h-4 w-4" />
-              Agregar Artículo
-            </Button>
-            <Button
-              onClick={handleGeneratePdf}
-              disabled={filteredItems.length === 0}
-              className="w-full md:w-auto whitespace-nowrap"
-            >
-              <FileText className="mr-2 h-4 w-4" />
-              Finalizar conteo de inventario
-            </Button>
+          <CardDescription>Busca, gestiona y añade artículos a tu inventario.</CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="flex flex-col md:flex-row justify-between items-center gap-4">
+            <InventorySearch onSearch={setSearchTerm} className="w-full md:flex-grow" />
+            <div className="flex flex-col sm:flex-row gap-2 w-full md:w-auto">
+              <Button
+                onClick={() => setIsAddItemDialogOpen(true)}
+                className="w-full md:w-auto whitespace-nowrap"
+              >
+                <PackagePlus className="mr-2 h-4 w-4" />
+                Agregar Artículo
+              </Button>
+              <Button
+                onClick={handleGeneratePdf}
+                disabled={filteredItems.length === 0}
+                className="w-full md:w-auto whitespace-nowrap"
+              >
+                <FileText className="mr-2 h-4 w-4" />
+                Finalizar conteo de inventario
+              </Button>
+            </div>
           </div>
-        </div>
-        <InventoryTable items={filteredItems} />
-      </CardContent>
-    </Card>
+          <InventoryTable items={filteredItems} />
+        </CardContent>
+      </Card>
+      <AddItemForm
+        isOpen={isAddItemDialogOpen}
+        onOpenChange={setIsAddItemDialogOpen}
+        onAddItem={handleAddItem}
+      />
+    </>
   );
 }

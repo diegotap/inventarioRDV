@@ -11,13 +11,14 @@ export default function Home() {
   const [isClient, setIsClient] = useState(false);
 
   useEffect(() => {
-    // Load initial mock data only on the client-side after hydration
     setInventoryItems(mockInventory);
     setIsClient(true);
   }, []);
 
-  // Render a loading state or null until client-side hydration is complete
-  // to avoid potential hydration mismatches with mockInventory.
+  const handleInventoryUpdate = (updatedItems: InventoryItem[]) => {
+    setInventoryItems(updatedItems);
+  };
+
   if (!isClient) {
     return (
       <div className="flex flex-col min-h-screen bg-background">
@@ -25,10 +26,6 @@ export default function Home() {
         <main className="flex-grow container mx-auto p-4 md:p-8 animate-pulse">
           <div className="space-y-8">
             <div className="h-64 bg-muted rounded-lg"></div>
-            {/* Placeholder for removed CSV import section */}
-            {/* <div className="h-48 bg-muted rounded-lg"></div> */}
-            {/* Placeholder for removed Reorder section */}
-            {/* <div className="h-96 bg-muted rounded-lg"></div> */}
           </div>
         </main>
       </div>
@@ -40,9 +37,7 @@ export default function Home() {
       <Header />
       <main className="flex-grow container mx-auto p-4 md:p-8">
         <div className="space-y-8">
-          <InventorySection initialItems={inventoryItems} />
-          {/* CSVImportSection removed */}
-          {/* ReorderSection removed */}
+          <InventorySection items={inventoryItems} onItemsChange={handleInventoryUpdate} />
         </div>
       </main>
     </div>

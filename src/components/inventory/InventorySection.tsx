@@ -6,7 +6,7 @@ import { Card, CardHeader, CardTitle, CardContent, CardDescription } from '@/com
 import { InventorySearch } from './InventorySearch';
 import { InventoryTable } from './InventoryTable';
 import { Button } from '@/components/ui/button';
-import { PackageSearch, FileText } from 'lucide-react';
+import { PackageSearch, FileText, PackagePlus } from 'lucide-react';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 
@@ -59,8 +59,6 @@ export function InventorySection({ initialItems }: InventorySectionProps) {
       headStyles: { fillColor: [240, 72, 72] }, // Primary color (Tomato Red)
       styles: { font: "helvetica", fontSize: 8 },
       didDrawPage: (data) => {
-        // Footer
-        // Usar data.pageCount proporcionado por jspdf-autotable
         doc.setFontSize(8);
         doc.text(`Página ${data.pageNumber} de ${data.pageCount}`, data.settings.margin.left, doc.internal.pageSize.height - 10);
       }
@@ -78,19 +76,28 @@ export function InventorySection({ initialItems }: InventorySectionProps) {
             <CardTitle className="font-headline text-2xl">Inventario Actual</CardTitle>
           </div>
         </div>
-        <CardDescription>Busca y gestiona los artículos de tu inventario.</CardDescription>
+        <CardDescription>Busca, gestiona y añade artículos a tu inventario.</CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
         <div className="flex flex-col md:flex-row justify-between items-center gap-4">
           <InventorySearch onSearch={setSearchTerm} className="w-full md:flex-grow" />
-          <Button
-            onClick={handleGeneratePdf}
-            disabled={filteredItems.length === 0}
-            className="w-full md:w-auto whitespace-nowrap"
-          >
-            <FileText className="mr-2 h-4 w-4" />
-            Finalizar conteo de inventario
-          </Button>
+          <div className="flex flex-col sm:flex-row gap-2 w-full md:w-auto">
+            <Button
+              // onClick={() => { /* Lógica para agregar artículo aquí */ }}
+              className="w-full md:w-auto whitespace-nowrap"
+            >
+              <PackagePlus className="mr-2 h-4 w-4" />
+              Agregar Artículo
+            </Button>
+            <Button
+              onClick={handleGeneratePdf}
+              disabled={filteredItems.length === 0}
+              className="w-full md:w-auto whitespace-nowrap"
+            >
+              <FileText className="mr-2 h-4 w-4" />
+              Finalizar conteo de inventario
+            </Button>
+          </div>
         </div>
         <InventoryTable items={filteredItems} />
       </CardContent>

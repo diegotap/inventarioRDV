@@ -148,7 +148,7 @@ export function EditItemForm({ isOpen, onOpenChange, onEditItem, itemToEdit }: E
                   name="price"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Precio (€)</FormLabel>
+                      <FormLabel>Precio (S/)</FormLabel>
                       <FormControl>
                         <Input type="number" step="0.01" placeholder="Ej: 2.50" {...field} />
                       </FormControl>

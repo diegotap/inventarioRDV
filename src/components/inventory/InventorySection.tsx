@@ -54,7 +54,7 @@ export function InventorySection({ items, onItemsChange }: InventorySectionProps
     doc.setFont("helvetica", "normal");
     doc.text(`Fecha: ${new Date().toLocaleDateString('es-ES')}`, 14, 26);
 
-    const tableColumn = ["ID", "Nombre", "Categoría", "Cantidad", "Precio (€)", "Última Actualización"];
+    const tableColumn = ["ID", "Nombre", "Categoría", "Cantidad", "Precio (S/)", "Última Actualización"];
     const tableRows: any[][] = [];
 
     const itemsToReport = filteredItems; 
@@ -80,7 +80,7 @@ export function InventorySection({ items, onItemsChange }: InventorySectionProps
       styles: { font: "helvetica", fontSize: 8 },
       didDrawPage: (data) => {
         doc.setFontSize(8);
-        const pageCount = doc.getNumberOfPages(); 
+        const pageCount = data.doc.getNumberOfPages(); // Correct way to get page count
         doc.text(`Página ${data.pageNumber} de ${pageCount}`, data.settings.margin.left, doc.internal.pageSize.height - 10);
       }
     });

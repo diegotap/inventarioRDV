@@ -37,7 +37,7 @@ export function InventoryTable({ items, onEditItem, onDeleteItem }: InventoryTab
             <TableHead>Nombre</TableHead>
             <TableHead>Categoría</TableHead>
             <TableHead className="text-right">Cantidad</TableHead>
-            <TableHead className="text-right">Precio (€)</TableHead>
+            <TableHead className="text-right">Precio (S/)</TableHead>
             <TableHead>Última Actualización</TableHead>
             <TableHead className="text-right">Acciones</TableHead>
           </TableRow>

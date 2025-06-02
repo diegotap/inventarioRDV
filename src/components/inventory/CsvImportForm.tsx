@@ -7,7 +7,7 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
-import { FileCsv, Upload } from 'lucide-react';
+import { FileSpreadsheet, Upload } from 'lucide-react';
 
 interface CsvImportFormProps {
   onImport: (data: InventoryItem[]) => void;
@@ -86,7 +86,7 @@ export function CsvImportForm({ onImport }: CsvImportFormProps) {
     <form onSubmit={handleSubmit} className="space-y-4">
       <div>
         <Label htmlFor="csv-file-input" className="mb-2 flex items-center">
-          <FileCsv className="h-5 w-5 mr-2 text-muted-foreground" />
+          <FileSpreadsheet className="h-5 w-5 mr-2 text-muted-foreground" />
           Seleccionar archivo CSV para importar
         </Label>
         <Input

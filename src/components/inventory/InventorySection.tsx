@@ -60,9 +60,9 @@ export function InventorySection({ initialItems }: InventorySectionProps) {
       styles: { font: "helvetica", fontSize: 8 },
       didDrawPage: (data) => {
         // Footer
-        const pageCount = doc.getNumberOfPages();
+        // Usar data.pageCount proporcionado por jspdf-autotable
         doc.setFontSize(8);
-        doc.text(`Página ${data.pageNumber} de ${pageCount}`, data.settings.margin.left, doc.internal.pageSize.height - 10);
+        doc.text(`Página ${data.pageNumber} de ${data.pageCount}`, data.settings.margin.left, doc.internal.pageSize.height - 10);
       }
     });
 

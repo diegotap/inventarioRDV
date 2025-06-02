@@ -15,9 +15,11 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 
 interface InventoryTableProps {
   items: InventoryItem[];
+  onEditItem: (item: InventoryItem) => void;
+  onDeleteItem: (item: InventoryItem) => void;
 }
 
-export function InventoryTable({ items }: InventoryTableProps) {
+export function InventoryTable({ items, onEditItem, onDeleteItem }: InventoryTableProps) {
   if (items.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center text-center py-10 border border-dashed rounded-lg">
@@ -49,10 +51,10 @@ export function InventoryTable({ items }: InventoryTableProps) {
               <TableCell className="text-right">{item.price.toFixed(2)}</TableCell>
               <TableCell>{new Date(item.lastUpdated).toLocaleDateString()}</TableCell>
               <TableCell className="text-right">
-                <Button variant="ghost" size="icon" className="mr-2" aria-label={`Editar ${item.name}`}>
+                <Button variant="ghost" size="icon" className="mr-2" aria-label={`Editar ${item.name}`} onClick={() => onEditItem(item)}>
                   <Edit3 className="h-4 w-4" />
                 </Button>
-                <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive" aria-label={`Eliminar ${item.name}`}>
+                <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive" aria-label={`Eliminar ${item.name}`} onClick={() => onDeleteItem(item)}>
                   <Trash2 className="h-4 w-4" />
                 </Button>
               </TableCell>

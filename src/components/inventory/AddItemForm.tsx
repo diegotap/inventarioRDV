@@ -6,7 +6,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label'; // No es necesario si se usa FormLabel
+import { Label } from '@/components/ui/label'; 
 import {
   Dialog,
   DialogContent,
@@ -33,9 +33,7 @@ const addItemFormSchema = z.object({
   quantity: z.coerce
     .number({ invalid_type_error: 'Debe ser un número' })
     .min(0, 'La cantidad no puede ser negativa.'),
-  price: z.coerce
-    .number({ invalid_type_error: 'Debe ser un número' })
-    .min(0, 'El precio no puede ser negativo.'),
+  unidad: z.string().min(1, 'La unidad es requerida.'), // <-- NUEVO
 });
 
 type AddItemFormValues = z.infer<typeof addItemFormSchema>;
@@ -54,18 +52,24 @@ export function AddItemForm({ isOpen, onOpenChange, onAddItem }: AddItemFormProp
       name: '',
       category: '',
       quantity: 0,
-      price: 0,
+      unidad: '', // <-- NUEVO
     },
   });
 
   const onSubmit: SubmitHandler<AddItemFormValues> = (data) => {
-    onAddItem(data);
+    onAddItem({
+      nombre: data.name,
+      categoria: data.category,
+      cantidad: data.quantity,
+      unidad: data.unidad,
+      createdAt: new Date().toISOString(), // <-- Fecha actual en formato ISO
+    });
     toast({
       title: 'Artículo Agregado',
       description: `"${data.name}" ha sido añadido al inventario.`,
     });
-    form.reset(); // Limpiar el formulario después de enviar
-    onOpenChange(false); // Cerrar el diálogo
+    form.reset();
+    onOpenChange(false);
   };
 
   // Asegurarse de resetear el formulario si el diálogo se cierra sin guardar
@@ -130,20 +134,20 @@ export function AddItemForm({ isOpen, onOpenChange, onAddItem }: AddItemFormProp
                   </FormItem>
                 )}
               />
-              <FormField
-                control={form.control}
-                name="price"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Precio (S/)</FormLabel>
-                    <FormControl>
-                      <Input type="number" step="0.01" placeholder="Ej: 2.50" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
             </div>
+            <FormField
+              control={form.control}
+              name="unidad"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Unidad</FormLabel>
+                  <FormControl>
+                    <Input placeholder="Ej: kg, unid., caja" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
             <DialogFooter className="pt-4">
               <DialogClose asChild>
                 <Button type="button" variant="outline">

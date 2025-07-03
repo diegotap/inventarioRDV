@@ -1,31 +1,35 @@
-
 'use client';
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import type { InventoryItem } from '@/lib/types';
-import { mockInventory } from '@/data/mock-inventory';
-import { Header } from '@/components/layout/Header';
 import { InventorySection } from '@/components/inventory/InventorySection';
 import { Button } from '@/components/ui/button';
 import { LogOut } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import Image from 'next/image';
+import { ReportHistory } from '@/components/reports/ReportHistory';
 
 export default function Home() {
   const [inventoryItems, setInventoryItems] = useState<InventoryItem[]>([]);
   const [isClient, setIsClient] = useState(false);
   const [isAuthenticated, setIsAuthenticated] = useState(false); // Auth state
+  const [userRole, setUserRole] = useState<string | null>(null);
   const router = useRouter();
   const { toast } = useToast();
 
   useEffect(() => {
     const authStatus = localStorage.getItem('isAuthenticated') === 'true';
+    const role = localStorage.getItem('userRole');
     setIsAuthenticated(authStatus);
+    setUserRole(role);
     if (!authStatus) {
-      router.replace('/login'); // Use replace to avoid page in history
+      router.replace('/login');
     } else {
-      setInventoryItems(mockInventory);
-      setIsClient(true); // Only set isClient if authenticated
+      fetch('/api/productos')
+        .then(res => res.json())
+        .then(data => setInventoryItems(data));
+      setIsClient(true);
     }
   }, [router]);
 
@@ -66,16 +70,48 @@ export default function Home() {
   if (isAuthenticated && isClient) {
     return (
       <div className="flex flex-col min-h-screen bg-background">
-        <Header />
-        <div className="container mx-auto p-4 md:px-8 md:pt-4 md:pb-0 flex justify-end">
-          <Button variant="outline" onClick={handleLogout}>
-            <LogOut className="mr-2 h-4 w-4" />
-            Cerrar Sesión
-          </Button>
-        </div>
+        <header className="bg-card shadow-md sticky top-0 z-50">
+          <div className="container mx-auto px-4 py-4 flex flex-col md:flex-row items-center justify-between gap-4">
+            <div className="flex items-center">
+              <Image
+                src="/log_rdv.png"
+                alt="Logo Rincón de Valeria"
+                width={32}
+                height={32}
+                className="h-8 w-8 mr-3"
+              />
+              <h1 className="text-2xl md:text-3xl font-headline text-primary">
+                Inventario Rincón de Valeria
+              </h1>
+            </div>
+            <div className="flex flex-col sm:flex-row items-center gap-2 w-full md:w-auto">
+              {userRole && (
+                <Button
+                  className="bg-primary text-white font-semibold shadow-none border-none hover:bg-primary/90 cursor-default w-full sm:w-auto px-2 py-1 text-xs md:px-4 md:py-2 md:text-base"
+                >
+                  {userRole === 'admin' ? 'Administrador' : 'Usuario'}
+                </Button>
+              )}
+              <Button variant="outline" onClick={handleLogout} className="w-full sm:w-auto">
+                <LogOut className="mr-2 h-4 w-4" />
+                Cerrar Sesión
+              </Button>
+            </div>
+          </div>
+        </header>
+        
         <main className="flex-grow container mx-auto p-4 md:p-8 pt-4">
           <div className="space-y-8">
-            <InventorySection items={inventoryItems} onItemsChange={handleInventoryUpdate} />
+            {userRole === 'admin' && (
+              <div className="mb-8">
+                <ReportHistory />
+              </div>
+            )}
+            <InventorySection
+              items={inventoryItems}
+              onItemsChange={handleInventoryUpdate}
+              userRole={userRole}
+            />
           </div>
         </main>
       </div>

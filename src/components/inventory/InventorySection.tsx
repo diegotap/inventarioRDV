@@ -10,7 +10,7 @@ import { PackageSearch, FileText, PackagePlus, AlertTriangle } from 'lucide-reac
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import { AddItemForm } from './AddItemForm';
-import { EditItemForm } from './EditItemForm'; // Nuevo componente
+import { EditItemForm } from './EditItemForm';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -24,11 +24,12 @@ import {
 import { useToast } from '@/hooks/use-toast';
 
 interface InventorySectionProps {
-  items: InventoryItem[];
-  onItemsChange: (newItems: InventoryItem[]) => void;
+  readonly items: InventoryItem[];
+  readonly onItemsChange: (newItems: InventoryItem[]) => void;
+  readonly userRole: string | null;
 }
 
-export function InventorySection({ items, onItemsChange }: InventorySectionProps) {
+export function InventorySection({ items, onItemsChange, userRole }: InventorySectionProps) {
   const [searchTerm, setSearchTerm] = useState('');
   const [isAddItemDialogOpen, setIsAddItemDialogOpen] = useState(false);
   const [isEditItemDialogOpen, setIsEditItemDialogOpen] = useState(false);
@@ -41,12 +42,12 @@ export function InventorySection({ items, onItemsChange }: InventorySectionProps
     if (!searchTerm) return items;
     return items.filter(
       (item) =>
-        item.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        item.category.toLowerCase().includes(searchTerm.toLowerCase())
+        item.nombre.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        item.categoria.toLowerCase().includes(searchTerm.toLowerCase())
     );
   }, [items, searchTerm]);
 
-  const handleGeneratePdf = () => {
+  const handleGeneratePdf = async () => {
     const doc = new jsPDF();
     doc.setFont("helvetica", "bold");
     doc.text("Reporte de Inventario", 14, 20);
@@ -54,19 +55,19 @@ export function InventorySection({ items, onItemsChange }: InventorySectionProps
     doc.setFont("helvetica", "normal");
     doc.text(`Fecha: ${new Date().toLocaleDateString('es-ES')}`, 14, 26);
 
-    const tableColumn = ["ID", "Nombre", "Categoría", "Cantidad", "Precio (S/)", "Última Actualización"];
+    const tableColumn = ["ID", "Nombre", "Categoría", "Cantidad", "Unidad", "Última Actualización"];
     const tableRows: any[][] = [];
 
     const itemsToReport = filteredItems; 
 
-    itemsToReport.forEach(item => {
+    itemsToReport.forEach((item, index) => {
       const itemData = [
-        item.id,
-        item.name,
-        item.category,
-        item.quantity,
-        item.price.toFixed(2),
-        new Date(item.lastUpdated).toLocaleDateString('es-ES'),
+        index + 1,
+        item.nombre,
+        item.categoria,
+        item.cantidad,
+        item.unidad,
+        new Date(item.createdAt).toLocaleDateString('es-ES'),
       ];
       tableRows.push(itemData);
     });
@@ -80,19 +81,49 @@ export function InventorySection({ items, onItemsChange }: InventorySectionProps
       styles: { font: "helvetica", fontSize: 8 },
       didDrawPage: (data) => {
         doc.setFontSize(8);
-        const pageCount = data.doc.getNumberOfPages(); // Correct way to get page count
+        const pageCount = data.doc.getNumberOfPages();
         doc.text(`Página ${data.pageNumber} de ${pageCount}`, data.settings.margin.left, doc.internal.pageSize.height - 10);
       }
     });
 
-    doc.save('reporte_inventario.pdf');
+    const fecha = new Date().toLocaleDateString('es-ES').replace(/\//g, '-');
+    doc.save(`reporte_inventario_${fecha}.pdf`);
+
+    const pdfBlob = doc.output('blob');
+    const formData = new FormData();
+    formData.append('file', pdfBlob, `reporte_inventario_${fecha}.pdf`);
+
+    await fetch('/api/reportes/upload', {
+      method: 'POST',
+      body: formData,
+    });
+
+    const nuevoReporte = {
+      fecha: new Date().toISOString(),
+      nombreArchivo: `reporte_inventario_${fecha}.pdf`,
+      usuario: userRole, // asegúrate de tener userRole disponible aquí
+    };
+    const historial = JSON.parse(localStorage.getItem('reportHistory') ?? '[]');
+    historial.push(nuevoReporte);
+    localStorage.setItem('reportHistory', JSON.stringify(historial));
+
+    // Enviar el reporte a la base de datos
+    await fetch('/api/reportes', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        fecha: new Date().toISOString(),
+        nombreArchivo: `reporte_inventario_${fecha}.pdf`,
+        usuario: userRole,
+      }),
+    });
   };
 
   const handleAddItem = (newItemData: Omit<InventoryItem, 'id' | 'lastUpdated'>) => {
     const newItem: InventoryItem = {
       ...newItemData,
-      id: `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
-      lastUpdated: new Date().toISOString(),
+      id: Date.now(),
+      createdAt: new Date().toISOString(),
     };
     onItemsChange([...items, newItem]);
     setIsAddItemDialogOpen(false);
@@ -104,16 +135,11 @@ export function InventorySection({ items, onItemsChange }: InventorySectionProps
   };
 
   const handleEditItem = (updatedItemData: InventoryItem) => {
-    const updatedItems = items.map(item => 
-      item.id === updatedItemData.id ? { ...updatedItemData, lastUpdated: new Date().toISOString() } : item
+    const updatedItems = items.map(item =>
+      item.id === updatedItemData.id ? { ...updatedItemData } : item
     );
     onItemsChange(updatedItems);
     setIsEditItemDialogOpen(false);
-    setItemToEdit(null);
-    toast({
-      title: 'Artículo Actualizado',
-      description: `"${updatedItemData.name}" ha sido actualizado.`,
-    });
   };
 
   const handleOpenDeleteDialog = (item: InventoryItem) => {
@@ -128,10 +154,14 @@ export function InventorySection({ items, onItemsChange }: InventorySectionProps
     setIsDeleteDialogOpen(false);
     toast({
       title: 'Artículo Eliminado',
-      description: `"${itemToDelete.name}" ha sido eliminado del inventario.`,
+      description: `"${itemToDelete.nombre}" ha sido eliminado del inventario.`,
       variant: 'destructive',
     });
     setItemToDelete(null);
+  };
+
+  const handleFinishInventory = () => {
+    handleGeneratePdf();
   };
 
   return (
@@ -150,16 +180,17 @@ export function InventorySection({ items, onItemsChange }: InventorySectionProps
           <div className="flex flex-col md:flex-row justify-between items-center gap-4">
             <InventorySearch onSearch={setSearchTerm} className="w-full md:flex-grow" />
             <div className="flex flex-col sm:flex-row gap-2 w-full md:w-auto">
+              {userRole === 'admin' && (
+                <Button
+                  onClick={() => setIsAddItemDialogOpen(true)}
+                  className="w-full md:w-auto whitespace-nowrap"
+                >
+                  <PackagePlus className="mr-2 h-4 w-4" />
+                  Agregar Artículo
+                </Button>
+              )}
               <Button
-                onClick={() => setIsAddItemDialogOpen(true)}
-                className="w-full md:w-auto whitespace-nowrap"
-              >
-                <PackagePlus className="mr-2 h-4 w-4" />
-                Agregar Artículo
-              </Button>
-              <Button
-                onClick={handleGeneratePdf}
-                disabled={filteredItems.length === 0}
+                onClick={handleFinishInventory}
                 className="w-full md:w-auto whitespace-nowrap"
               >
                 <FileText className="mr-2 h-4 w-4" />
@@ -167,11 +198,14 @@ export function InventorySection({ items, onItemsChange }: InventorySectionProps
               </Button>
             </div>
           </div>
-          <InventoryTable 
-            items={filteredItems} 
-            onEditItem={handleOpenEditDialog}
-            onDeleteItem={handleOpenDeleteDialog}
-          />
+          <div className="overflow-x-auto">
+            <InventoryTable
+              items={filteredItems}
+              onEditItem={handleOpenEditDialog}
+              onDeleteItem={handleOpenDeleteDialog}
+              userRole={userRole}
+            />
+          </div>
         </CardContent>
       </Card>
 
@@ -187,6 +221,7 @@ export function InventorySection({ items, onItemsChange }: InventorySectionProps
           onOpenChange={setIsEditItemDialogOpen}
           onEditItem={handleEditItem}
           itemToEdit={itemToEdit}
+          userRole={userRole}
         />
       )}
 
@@ -198,7 +233,7 @@ export function InventorySection({ items, onItemsChange }: InventorySectionProps
               ¿Estás seguro de eliminar este artículo?
             </AlertDialogTitle>
             <AlertDialogDescription>
-              Esta acción no se puede deshacer. Esto eliminará permanentemente el artículo "{itemToDelete?.name}" de tu inventario.
+              Esta acción no se puede deshacer. Esto eliminará permanentemente el artículo "{itemToDelete?.nombre}" de tu inventario.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>

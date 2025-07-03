@@ -1,10 +1,8 @@
 export interface InventoryItem {
-  id: string;
-  name: string;
-  category: string;
-  quantity: number;
-  price: number;
-  lastUpdated: string; // ISO date string
+  id: number;
+  nombre: string;
+  categoria: string;
+  cantidad: number;
+  unidad: string;
+  createdAt: string; 
 }
-
-// ReorderSuggestionItem, SuggestReorderInput, SuggestReorderOutput types removed

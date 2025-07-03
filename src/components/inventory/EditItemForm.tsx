@@ -24,7 +24,6 @@ import {
   FormLabel,
   FormMessage,
 } from '@/components/ui/form';
-import { useToast } from '@/hooks/use-toast';
 import { Edit3, Save } from 'lucide-react';
 
 const editItemFormSchema = z.object({
@@ -33,39 +32,38 @@ const editItemFormSchema = z.object({
   quantity: z.coerce
     .number({ invalid_type_error: 'Debe ser un número' })
     .min(0, 'La cantidad no puede ser negativa.'),
-  price: z.coerce
-    .number({ invalid_type_error: 'Debe ser un número' })
-    .min(0, 'El precio no puede ser negativo.'),
+  unidad: z.string().min(1, 'La unidad es requerida.'), // NUEVO
 });
 
 type EditItemFormValues = z.infer<typeof editItemFormSchema>;
 
 interface EditItemFormProps {
-  isOpen: boolean;
-  onOpenChange: (isOpen: boolean) => void;
-  onEditItem: (itemData: InventoryItem) => void;
-  itemToEdit: InventoryItem | null;
+  readonly isOpen: boolean;
+  readonly onOpenChange: (open: boolean) => void;
+  readonly onEditItem: (item: InventoryItem) => void;
+  readonly itemToEdit: InventoryItem;
+  readonly userRole: string | null;
 }
 
-export function EditItemForm({ isOpen, onOpenChange, onEditItem, itemToEdit }: EditItemFormProps) {
-  const { toast } = useToast(); // Not used here, but good practice if toast needed in future
+export function EditItemForm({ isOpen, onOpenChange, onEditItem, itemToEdit, userRole }: EditItemFormProps) {
+  console.log('userRole en EditItemForm:', userRole);
   const form = useForm<EditItemFormValues>({
     resolver: zodResolver(editItemFormSchema),
     defaultValues: {
       name: '',
       category: '',
       quantity: 0,
-      price: 0,
+      unidad: '',
     },
   });
 
   useEffect(() => {
     if (itemToEdit && isOpen) {
       form.reset({
-        name: itemToEdit.name,
-        category: itemToEdit.category,
-        quantity: itemToEdit.quantity,
-        price: itemToEdit.price,
+        name: itemToEdit.nombre,
+        category: itemToEdit.categoria,
+        quantity: itemToEdit.cantidad,
+        unidad: itemToEdit.unidad, 
       });
     }
   }, [itemToEdit, isOpen, form]);
@@ -73,17 +71,18 @@ export function EditItemForm({ isOpen, onOpenChange, onEditItem, itemToEdit }: E
   const onSubmit: SubmitHandler<EditItemFormValues> = (data) => {
     if (!itemToEdit) return;
     onEditItem({
-      ...itemToEdit, // Preserve ID and lastUpdated (will be updated in parent)
-      ...data,
+      ...itemToEdit, 
+      nombre: data.name,
+      categoria: data.category,
+      cantidad: data.quantity,
+      unidad: data.unidad,
     });
-    // Toast is handled in InventorySection for consistency
-    // form.reset(); // Resetting is handled by useEffect or onOpenChange
     onOpenChange(false);
   };
 
   const handleOpenChange = (open: boolean) => {
     if (!open) {
-      form.reset(); // Reset form if dialog is closed without saving
+      form.reset();
     }
     onOpenChange(open);
   };
@@ -103,33 +102,47 @@ export function EditItemForm({ isOpen, onOpenChange, onEditItem, itemToEdit }: E
         {itemToEdit ? (
           <Form {...form}>
             <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4 py-4">
-              <FormField
-                control={form.control}
-                name="name"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Nombre del Artículo</FormLabel>
-                    <FormControl>
-                      <Input placeholder="Ej: Tomates Frescos" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={form.control}
-                name="category"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Categoría</FormLabel>
-                    <FormControl>
-                      <Input placeholder="Ej: Verduras" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
+              {/* Solo mostrar nombre y categoría si es admin */}
+              {userRole === 'admin' && (
+                <>
+                  {/* Nombre */}
+                  <FormField
+                    control={form.control}
+                    name="name"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Nombre del Artículo</FormLabel>
+                        <FormControl>
+                          <Input
+                            placeholder="Ej: Tomates Frescos"
+                            {...field}
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  {/* Categoría */}
+                  <FormField
+                    control={form.control}
+                    name="category"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Categoría</FormLabel>
+                        <FormControl>
+                          <Input
+                            placeholder="Ej: Verduras"
+                            {...field}
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </>
+              )}
               <div className="grid grid-cols-2 gap-4">
+                {/* Cantidad */}
                 <FormField
                   control={form.control}
                   name="quantity"
@@ -143,14 +156,15 @@ export function EditItemForm({ isOpen, onOpenChange, onEditItem, itemToEdit }: E
                     </FormItem>
                   )}
                 />
+                {/* Unidad */}
                 <FormField
                   control={form.control}
-                  name="price"
+                  name="unidad"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Precio (S/)</FormLabel>
+                      <FormLabel>Unidad</FormLabel>
                       <FormControl>
-                        <Input type="number" step="0.01" placeholder="Ej: 2.50" {...field} />
+                        <Input placeholder="Ej: kg, unid., caja" {...field} />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -171,7 +185,7 @@ export function EditItemForm({ isOpen, onOpenChange, onEditItem, itemToEdit }: E
             </form>
           </Form>
         ) : (
-          <p>No hay artículo seleccionado para editar.</p> // Fallback, should not be seen if logic is correct
+          <p>No hay artículo seleccionado para editar.</p>
         )}
       </DialogContent>
     </Dialog>

@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -7,8 +6,9 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from '@/components/ui/card';
-import { Eye, EyeOff, LogInIcon } from 'lucide-react'; // Changed LogIn to LogInIcon
+import { Eye, EyeOff} from 'lucide-react'; // Changed LogIn to LogInIcon
 import { useToast } from '@/hooks/use-toast';
+import Image from 'next/image';
 
 export default function LoginPage() {
   const [username, setUsername] = useState('');
@@ -35,10 +35,20 @@ export default function LoginPage() {
     await new Promise(resolve => setTimeout(resolve, 500));
 
     if (username === 'admin' && password === '123456') {
+      // Al autenticar exitosamente, guarda el rol:
+      localStorage.setItem('userRole', 'admin'); // o 'user'
       localStorage.setItem('isAuthenticated', 'true');
       toast({
         title: 'Inicio de Sesión Exitoso',
         description: 'Bienvenido, admin.',
+      });
+      router.push('/'); // Navigate to inventory page
+    } else if (username === 'usuario' && password === 'usuario123') {
+      localStorage.setItem('userRole', 'user');
+      localStorage.setItem('isAuthenticated', 'true');
+      toast({
+        title: 'Inicio de Sesión Exitoso',
+        description: 'Bienvenido, usuario.',
       });
       router.push('/'); // Navigate to inventory page
     } else {
@@ -53,11 +63,18 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="flex items-center justify-center min-h-screen bg-background p-4">
+    <div className="flex flex-col items-center justify-center min-h-screen bg-background">
       <Card className="w-full max-w-md shadow-2xl">
         <CardHeader className="text-center">
           <div className="mx-auto mb-4 flex justify-center">
-            <LogInIcon className="h-16 w-16 text-primary" />
+            <Image
+              src="/log_rdv.png"
+              alt="Logo Rincón de Valeria"
+              width={200}
+              height={200}
+              priority
+              className="mb-4"
+            />
           </div>
           <CardTitle className="text-3xl font-headline">Inventario Rincón de Valeria</CardTitle>
           <CardDescription>Por favor, inicia sesión para continuar</CardDescription>
@@ -69,7 +86,7 @@ export default function LoginPage() {
               <Input
                 id="username"
                 type="text"
-                placeholder="admin"
+                placeholder="Ingrese su usuario"
                 value={username}
                 onChange={(e) => setUsername(e.target.value)}
                 required
@@ -83,7 +100,7 @@ export default function LoginPage() {
                 <Input
                   id="password"
                   type={showPassword ? 'text' : 'password'}
-                  placeholder="••••••••"
+                  placeholder="Ingrese su contraseña"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   required
